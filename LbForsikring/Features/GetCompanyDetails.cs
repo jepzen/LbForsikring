@@ -6,27 +6,31 @@ namespace LbForsikring.Features
 {
     public static class GetCompanyDetails
     {
-        public static void MapEndpoint(this WebApplication app)
+        public static void MapGetCompanyDetailsEndpoint(this WebApplication app)
         {
             app.MapGet("/company", Handle);
         }
 
         internal static async Task<Results<Ok<GetCompanyDetailsResponse>, ProblemHttpResult>> Handle(
-            GetCompanyDetailsRequest request,
+            [FromQuery(Name = "name")] string? name,
+            [FromQuery(Name = "cvr")] string? cvr,
             [FromServices] ICvrService cvrService, [FromServices] IDstService dstService)
         {
             // Validate request
-            if (string.IsNullOrEmpty(request.Name) && string.IsNullOrEmpty(request.Cvr))
+            if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(cvr))
             {
                 return TypedResults.Problem(statusCode: StatusCodes.Status400BadRequest,
                     detail: "Either Name or Cvr must be provided.");
             }
             
+            var request = new GetCompanyDetailsRequest { Name = name, Cvr = cvr };
             var cvrData = await LookUpCompany(request, cvrService);
 
             //TODO: Validate cvrData
 
-            var stats = await LookupStats(cvrData.BrancheKode, dstService);
+            //return TypedResults.Ok(cvrData);
+            
+            var stats = await LookupStats(cvrData.IndustryCode, dstService);
 
             var response = CreateResponse(cvrData, stats);
 
@@ -36,30 +40,34 @@ namespace LbForsikring.Features
 
         private static GetCompanyDetailsResponse CreateResponse(CvrResponse cvrData, StatsResponse stats)
         {
-            //TODO: Merge to types into one
-            throw new NotImplementedException();
+            return new GetCompanyDetailsResponse()
+            {
+                Name = cvrData.Name,
+                IndustryCode = cvrData.IndustryCode
+                //TODO: map more
+            };
         }
 
         private static async Task<StatsResponse> LookupStats(string brancheKode, IDstService dstService)
         {
+            return new StatsResponse();
+            //TODO: Fix
             var result = await dstService.GetBrancheData(brancheKode, DateTime.Now.Year);
             return StatsResponse.FromString(result); 
         }
 
-        private static async Task<CvrResponse> LookUpCompany(GetCompanyDetailsRequest request, ICvrService cvrService)
+        private static async Task<Integrations.CvrResponse> LookUpCompany(GetCompanyDetailsRequest request, ICvrService cvrService)
         {
-            string result;
-            
             if (request.Cvr != null)
             {
-                result = await cvrService.GetByCvr(request.Cvr);
-            } 
+                return await cvrService.GetByCvr(request.Cvr);
+            }
             else
             {
-                result = await cvrService.GetByName(request.Name);
+                var result = await cvrService.GetByName(request.Name!);
+                // TODO: Parse GetByName response and return CvrResponse
+                throw new NotImplementedException("GetByName response parsing not yet implemented");
             }
-
-            return CvrResponse.FromString(result);
         }
 
 
@@ -80,19 +88,10 @@ namespace LbForsikring.Features
 
         public record GetCompanyDetailsResponse
         {
-            //TODO:
-        }
+            public string Name { get; set; }
 
-
-        public class CvrResponse
-        {
-            public string BrancheKode { get; set; }
-
-            public static CvrResponse FromString(string s)
-            {
-                //TODO: Parse string
-                return new CvrResponse();
-            }
+            public string IndustryCode { get; set; }
+            
         }
     }
 }
