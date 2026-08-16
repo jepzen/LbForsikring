@@ -27,8 +27,7 @@ namespace LbForsikring.Features
             var cvrData = await LookUpCompany(request, cvrService);
 
             //TODO: Validate cvrData
-
-            //return TypedResults.Ok(cvrData);
+            
             
             var stats = await LookupStats(cvrData.IndustryCode, dstService);
 
@@ -51,23 +50,17 @@ namespace LbForsikring.Features
         private static async Task<StatsResponse> LookupStats(string brancheKode, IDstService dstService)
         {
             return new StatsResponse();
-            //TODO: Fix
             var result = await dstService.GetBrancheData(brancheKode, DateTime.Now.Year);
             return StatsResponse.FromString(result); 
         }
 
-        private static async Task<Integrations.CvrResponse> LookUpCompany(GetCompanyDetailsRequest request, ICvrService cvrService)
+        private static async Task<CvrResponse> LookUpCompany(GetCompanyDetailsRequest request, ICvrService cvrService)
         {
             if (request.Cvr != null)
             {
                 return await cvrService.GetByCvr(request.Cvr);
             }
-            else
-            {
-                var result = await cvrService.GetByName(request.Name!);
-                // TODO: Parse GetByName response and return CvrResponse
-                throw new NotImplementedException("GetByName response parsing not yet implemented");
-            }
+            return await cvrService.GetByName(request.Name!);
         }
 
 
@@ -88,9 +81,9 @@ namespace LbForsikring.Features
 
         public record GetCompanyDetailsResponse
         {
-            public string Name { get; set; }
+            public required string Name { get; set; }
 
-            public string IndustryCode { get; set; }
+            public required string IndustryCode { get; set; }
             
         }
     }

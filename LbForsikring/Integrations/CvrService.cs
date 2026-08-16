@@ -11,6 +11,8 @@
             PropertyNameCaseInsensitive = true
         };
 
+        private static readonly HttpClient Client = new();
+
         public async Task<CvrResponse> GetByCvr(string cvr)
         {
             if (string.IsNullOrWhiteSpace(cvr))
@@ -18,10 +20,8 @@
 
             //TODO: Move to configuration
             var url = $"https://apicvr.dk/api/v1/{cvr}";
-
-            //TODO: Dont new up the HttpClient
-            using var client = new HttpClient();
-            var response = await client.GetAsync(url);
+            
+            var response = await Client.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -35,7 +35,7 @@
             return cvrResponse;
         }
 
-        public async Task<string> GetByName(string name)
+        public async Task<CvrResponse> GetByName(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("name is required", nameof(name));
@@ -43,22 +43,28 @@
             //TODO: Move to configuration
             var url = $"https://apicvr.dk/api/v1/search/company/{name}";
 
-            using var client = new HttpClient();
-            var response = await client.GetAsync(url);
+            var response = await Client.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
                 throw new InvalidOperationException($"Request to {url} failed with status {(int)response.StatusCode}.");
             }
 
-            return await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync();
+            var cvrResponses = JsonSerializer.Deserialize<List<CvrResponse>>(content, JsonOptions)
+                               ?? throw new InvalidOperationException("Failed to deserialize CVR response");
+
+            if (cvrResponses.Count == 0)
+                throw new InvalidOperationException($"No companies found matching name '{name}'");
+
+            return cvrResponses[0];
         }
     }
 
     public interface ICvrService
     {
         public Task<CvrResponse> GetByCvr(string cvr);
-        public Task<string> GetByName(string name);
+        public Task<CvrResponse> GetByName(string name);
     }
 }
 

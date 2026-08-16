@@ -31,7 +31,7 @@ public class GetCompanyDetailsHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithNullNameAndWhitespaceCvr_DoesNotReturnBadRequest()
+    public async Task Handle_WithNullNameAndWhitespaceCvr_CallsCvrService()
     {
         // Arrange - whitespace-only strings don't trigger validation (string.IsNullOrEmpty returns false for "   ")
         var cvrResponse = new CvrResponse
@@ -51,12 +51,18 @@ public class GetCompanyDetailsHandlerTests
         _mockDstService.Setup(x => x.GetBrancheData(It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(dstResponseJson);
 
-        // Act - this will fail at CreateResponse, but validation should pass
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(async () =>
-            await GetCompanyDetails.Handle(null, "   ", _mockCvrService.Object, _mockDstService.Object));
+        // Act
+        try
+        {
+            await GetCompanyDetails.Handle(null, "   ", _mockCvrService.Object, _mockDstService.Object);
+        }
+        catch
+        {
+            // Expected - implementation not complete
+        }
 
-        // Assert - CreateResponse throws, not validation
-        Assert.NotNull(exception);
+        // Assert
+        _mockCvrService.Verify(x => x.GetByCvr("   "), Times.Once);
     }
 
     [Fact]
@@ -98,11 +104,36 @@ public class GetCompanyDetailsHandlerTests
     [Fact]
     public async Task Handle_WithValidNameOnly_CallsGetByName()
     {
-        // Act & Assert - GetByName is not yet implemented to return CvrResponse
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(async () =>
-            await GetCompanyDetails.Handle("TestCompany", null, _mockCvrService.Object, _mockDstService.Object));
+        // Arrange
+        var cvrResponse = new CvrResponse
+        {
+            Vat = 16500836,
+            Name = "TestCompany",
+            Address = "Test Address",
+            Zipcode = 1000,
+            City = "Test City",
+            IndustryCode = "999999",
+            IndustryDesc = "Test Industry"
+        };
+        var dstResponseJson = "{}";
 
-        Assert.NotNull(exception);
+        _mockCvrService.Setup(x => x.GetByName("TestCompany"))
+            .ReturnsAsync(cvrResponse);
+        _mockDstService.Setup(x => x.GetBrancheData(It.IsAny<string>(), It.IsAny<int>()))
+            .ReturnsAsync(dstResponseJson);
+
+        // Act
+        try
+        {
+            await GetCompanyDetails.Handle("TestCompany", null, _mockCvrService.Object, _mockDstService.Object);
+        }
+        catch
+        {
+            // Expected - implementation not complete
+        }
+
+        // Assert
+        _mockCvrService.Verify(x => x.GetByName("TestCompany"), Times.Once);
     }
 
     [Fact]
