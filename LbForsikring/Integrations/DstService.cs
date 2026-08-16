@@ -2,7 +2,7 @@
 {
     public class DstService : IDstService
     {
-        public void GetBrancheData()
+        public async Task<string> GetBrancheData(string brancheKode, int year)
         {
             throw new NotImplementedException();
         }
@@ -10,6 +10,6 @@
 
     public interface IDstService
     {
-        public void GetBrancheData();
+        public Task<string> GetBrancheData(string brancheKode, int year);
     }
 }
