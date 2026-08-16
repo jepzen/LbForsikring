@@ -1,15 +1,68 @@
 ﻿namespace LbForsikring.Integrations
 {
-    public class DstService : IDstService
+    using System.Net.Http.Json;
+    using System.Text.Json.Serialization;
+
+    public class DstService(HttpClient httpClient) : IDstService
     {
-        public async Task<string> GetBrancheData(string brancheKode, int year)
+        private const string DstApiUrl = "https://api.statbank.dk/v1/data";
+
+        public async Task<string> GetIndustryStats(string industryCode, int year)
         {
-            throw new NotImplementedException();
+            var payload = new DstDataRequest
+            {
+                Table = "ERHV1",
+                Format = "CSV",
+                Variables = new[]
+                {
+                    new DstVariable
+                    {
+                        Code = "BRANCHE07",
+                        Values = new[] { industryCode }
+                    },
+                    new DstVariable
+                    {
+                        Code = "TAL",
+                        Values = new[] { "ARBSTED", "ANSATTE", "FULDBESK", "LØNSUM" }
+                    },
+                    new DstVariable
+                    {
+                        Code = "Tid",
+                        Values = new[] { year.ToString() }
+                    }
+                }
+            };
+
+            var response = await httpClient.PostAsJsonAsync(DstApiUrl, payload);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsStringAsync();
         }
     }
 
     public interface IDstService
     {
-        public Task<string> GetBrancheData(string brancheKode, int year);
+        public Task<string> GetIndustryStats(string industryCode, int year);
+    }
+
+    public class DstDataRequest
+    {
+        [JsonPropertyName("table")]
+        public string Table { get; set; }
+
+        [JsonPropertyName("format")]
+        public string Format { get; set; }
+
+        [JsonPropertyName("variables")]
+        public DstVariable[] Variables { get; set; }
+    }
+
+    public class DstVariable
+    {
+        [JsonPropertyName("code")]
+        public string Code { get; set; }
+
+        [JsonPropertyName("values")]
+        public string[] Values { get; set; }
     }
 }

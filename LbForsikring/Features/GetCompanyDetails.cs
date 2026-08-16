@@ -4,87 +4,66 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LbForsikring.Features
 {
-    public static class GetCompanyDetails
+    public class GetCompanyDetails
     {
-        public static void MapGetCompanyDetailsEndpoint(this WebApplication app)
+        public class Endpoint : IEndpoint
         {
-            app.MapGet("/company", Handle);
-        }
-
-        internal static async Task<Results<Ok<GetCompanyDetailsResponse>, ProblemHttpResult>> Handle(
-            [FromQuery(Name = "name")] string? name,
-            [FromQuery(Name = "cvr")] string? cvr,
-            [FromServices] ICvrService cvrService, [FromServices] IDstService dstService)
-        {
-            // Validate request
-            if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(cvr))
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                return TypedResults.Problem(statusCode: StatusCodes.Status400BadRequest,
-                    detail: "Either Name or Cvr must be provided.");
+                app.MapGet("/company", Handle);
+
             }
             
-            var request = new GetCompanyDetailsRequest { Name = name, Cvr = cvr };
-            var cvrData = await LookUpCompany(request, cvrService);
-
-            //TODO: Validate cvrData
-            
-            
-            var stats = await LookupStats(cvrData.IndustryCode, dstService);
-
-            var response = CreateResponse(cvrData, stats);
-
-            return TypedResults.Ok(response);
-        }
-
-
-        private static GetCompanyDetailsResponse CreateResponse(CvrResponse cvrData, StatsResponse stats)
-        {
-            return new GetCompanyDetailsResponse()
+            public static async Task<Results<Ok<GetCompanyDetailsResponse>, ProblemHttpResult>> Handle(
+                [FromQuery(Name = "name")] string? name,
+                [FromQuery(Name = "cvr")] string? cvr,
+                [FromServices] ICvrService cvrService, [FromServices] IDstService dstService)
             {
-                Name = cvrData.Name,
-                IndustryCode = cvrData.IndustryCode
-                //TODO: map more
-            };
-        }
+                // Validate request
+                if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(cvr))
+                {
+                    return TypedResults.Problem(statusCode: StatusCodes.Status400BadRequest,
+                        detail: "Either Name or Cvr must be provided.");
+                }
 
-        private static async Task<StatsResponse> LookupStats(string brancheKode, IDstService dstService)
-        {
-            return new StatsResponse();
-            var result = await dstService.GetBrancheData(brancheKode, DateTime.Now.Year);
-            return StatsResponse.FromString(result); 
-        }
+                var request = new GetCompanyDetailsRequest { Name = name, Cvr = cvr };
+                var cvrData = await LookUpCompany(request, cvrService);
 
-        private static async Task<CvrResponse> LookUpCompany(GetCompanyDetailsRequest request, ICvrService cvrService)
-        {
-            if (request.Cvr != null)
-            {
-                return await cvrService.GetByCvr(request.Cvr);
+                //TODO: Validate cvrData
+
+                var stats = await LookupStats(cvrData.IndustryCode, dstService);
+
+                var response = CreateResponse(cvrData, stats);
+
+                return TypedResults.Ok(response);
             }
-            return await cvrService.GetByName(request.Name!);
-        }
 
 
-        internal class StatsResponse
-        {
-            public static StatsResponse FromString(string s)
+            private static async Task<List<StatsResponse>> LookupStats(string industryCode, IDstService dstService)
             {
-                //TODO: Parse string
-                return new StatsResponse();
+                var result = await dstService.GetIndustryStats(industryCode, 2024);
+                return StatsResponse.FromString(result);
             }
-        }
 
-        public record GetCompanyDetailsRequest
-        {
-            public string? Name { get; set; }
-            public string? Cvr { get; set; }
-        }
+            private static async Task<CvrResponse> LookUpCompany(GetCompanyDetailsRequest request, ICvrService cvrService)
+            {
+                if (request.Cvr != null)
+                {
+                    return await cvrService.GetByCvr(request.Cvr);
+                }
 
-        public record GetCompanyDetailsResponse
-        {
-            public required string Name { get; set; }
-
-            public required string IndustryCode { get; set; }
+                return await cvrService.GetByName(request.Name!);
+            }
             
+            private static GetCompanyDetailsResponse CreateResponse(CvrResponse cvrData, List<StatsResponse> stats)
+            {
+                return new GetCompanyDetailsResponse()
+                {
+                    Name = cvrData.Name,
+                    IndustryCode = cvrData.IndustryCode,
+                    Stats = stats
+                };
+            }
         }
     }
 }

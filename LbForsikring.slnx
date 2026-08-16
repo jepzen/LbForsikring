@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/docs/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="LbForsikring.AppHost/LbForsikring.AppHost.csproj" />
   <Project Path="LbForsikring.ServiceDefaults/LbForsikring.ServiceDefaults.csproj" />
   <Project Path="LbForsikring/LbForsikring.csproj" />

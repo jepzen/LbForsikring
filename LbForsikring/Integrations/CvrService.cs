@@ -20,7 +20,7 @@
 
             //TODO: Move to configuration
             var url = $"https://apicvr.dk/api/v1/{cvr}";
-            
+
             var response = await Client.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)

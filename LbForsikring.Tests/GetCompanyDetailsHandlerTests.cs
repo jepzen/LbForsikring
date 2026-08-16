@@ -14,7 +14,7 @@ public class GetCompanyDetailsHandlerTests
     public async Task Handle_WithNeitherNameNorCvr_ReturnsBadRequest()
     {
         // Act
-        var result = await GetCompanyDetails.Handle(null, null, _mockCvrService.Object, _mockDstService.Object);
+        var result = await GetCompanyDetails.Endpoint.Handle(null, null, _mockCvrService.Object, _mockDstService.Object);
 
         // Assert
         Assert.IsType<ProblemHttpResult>(result.Result);
@@ -24,7 +24,7 @@ public class GetCompanyDetailsHandlerTests
     public async Task Handle_WithEmptyNameAndEmptyCvr_ReturnsBadRequest()
     {
         // Act
-        var result = await GetCompanyDetails.Handle("", "", _mockCvrService.Object, _mockDstService.Object);
+        var result = await GetCompanyDetails.Endpoint.Handle("", "", _mockCvrService.Object, _mockDstService.Object);
 
         // Assert
         Assert.IsType<ProblemHttpResult>(result.Result);
@@ -48,13 +48,13 @@ public class GetCompanyDetailsHandlerTests
 
         _mockCvrService.Setup(x => x.GetByCvr("   "))
             .ReturnsAsync(cvrResponse);
-        _mockDstService.Setup(x => x.GetBrancheData(It.IsAny<string>(), It.IsAny<int>()))
+        _mockDstService.Setup(x => x.GetIndustryStats(It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(dstResponseJson);
 
         // Act
         try
         {
-            await GetCompanyDetails.Handle(null, "   ", _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle(null, "   ", _mockCvrService.Object, _mockDstService.Object);
         }
         catch
         {
@@ -83,13 +83,13 @@ public class GetCompanyDetailsHandlerTests
 
         _mockCvrService.Setup(x => x.GetByCvr("12345678"))
             .ReturnsAsync(cvrResponse);
-        _mockDstService.Setup(x => x.GetBrancheData(It.IsAny<string>(), It.IsAny<int>()))
+        _mockDstService.Setup(x => x.GetIndustryStats(It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(dstResponseJson);
 
         // Act
         try
         {
-            await GetCompanyDetails.Handle("IgnoredName", "12345678", _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle("IgnoredName", "12345678", _mockCvrService.Object, _mockDstService.Object);
         }
         catch (NotImplementedException)
         {
@@ -119,13 +119,13 @@ public class GetCompanyDetailsHandlerTests
 
         _mockCvrService.Setup(x => x.GetByName("TestCompany"))
             .ReturnsAsync(cvrResponse);
-        _mockDstService.Setup(x => x.GetBrancheData(It.IsAny<string>(), It.IsAny<int>()))
+        _mockDstService.Setup(x => x.GetIndustryStats(It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(dstResponseJson);
 
         // Act
         try
         {
-            await GetCompanyDetails.Handle("TestCompany", null, _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle("TestCompany", null, _mockCvrService.Object, _mockDstService.Object);
         }
         catch
         {
@@ -155,13 +155,13 @@ public class GetCompanyDetailsHandlerTests
 
         _mockCvrService.Setup(x => x.GetByCvr(cvr))
             .ReturnsAsync(cvrResponse);
-        _mockDstService.Setup(x => x.GetBrancheData(It.IsAny<string>(), It.IsAny<int>()))
+        _mockDstService.Setup(x => x.GetIndustryStats(It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(dstResponseJson);
 
         // Act
         try
         {
-            await GetCompanyDetails.Handle(null, cvr, _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle(null, cvr, _mockCvrService.Object, _mockDstService.Object);
         }
         catch (NotImplementedException)
         {
@@ -191,13 +191,13 @@ public class GetCompanyDetailsHandlerTests
 
         _mockCvrService.Setup(x => x.GetByCvr("12345678"))
             .ReturnsAsync(cvrResponse);
-        _mockDstService.Setup(x => x.GetBrancheData(It.IsAny<string>(), It.IsAny<int>()))
+        _mockDstService.Setup(x => x.GetIndustryStats(It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(dstResponseJson);
 
         // Act
         try
         {
-            await GetCompanyDetails.Handle(null, "12345678", _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle(null, "12345678", _mockCvrService.Object, _mockDstService.Object);
         }
         catch (NotImplementedException)
         {
@@ -205,7 +205,7 @@ public class GetCompanyDetailsHandlerTests
         }
 
         // Assert
-        _mockDstService.Verify(x => x.GetBrancheData(It.IsAny<string>(), currentYear), Times.Once);
+        _mockDstService.Verify(x => x.GetIndustryStats(It.IsAny<string>(), 2024), Times.Once);
     }
 }
 
