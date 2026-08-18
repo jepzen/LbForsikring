@@ -7,8 +7,9 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddScoped<ICvrService, CvrService>();
-builder.Services.AddScoped<IDstService, DstService>();
+builder.Services.AddScoped<IDstService, DstService>(); //uncomment to remove resilience and make test fail
+//builder.Services.AddHttpClient<IDstService, DstService>();
+builder.Services.AddHttpClient<ICvrService, CvrService>(); 
 builder.Services.AddHealthChecks();
 
 builder.Services.AddEndpoints();

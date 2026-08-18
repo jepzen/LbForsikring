@@ -17,9 +17,10 @@ namespace LbForsikring.Features
             public static async Task<Results<Ok<GetCompanyDetailsResponse>, ProblemHttpResult>> Handle(
                 [FromQuery(Name = "name")] string? name,
                 [FromQuery(Name = "cvr")] string? cvr,
-                [FromServices] ICvrService cvrService, [FromServices] IDstService dstService)
+                [FromServices] ICvrService cvrService, 
+                [FromServices] IDstService dstService,
+                ILogger<GetCompanyDetails> logger)
             {
-                // Validate request
                 if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(cvr))
                 {
                     return TypedResults.Problem(statusCode: StatusCodes.Status400BadRequest,
@@ -27,11 +28,16 @@ namespace LbForsikring.Features
                 }
 
                 var request = new GetCompanyDetailsRequest { Name = name, Cvr = cvr };
-                var cvrData = await LookUpCompany(request, cvrService);
+                
+                var cvrData = await LookUpCompany(request, cvrService, logger);
 
-                //TODO: Validate cvrData
-
-                var stats = await LookupStats(cvrData.IndustryCode, dstService);
+                if (cvrData.IndustryCode == string.Empty)
+                {
+                    return TypedResults.Problem(statusCode: StatusCodes.Status400BadRequest,
+                        detail: "Could not lookup company");
+                }
+                    
+                var stats = await LookupStats(cvrData.IndustryCode, dstService, logger);
 
                 var response = CreateResponse(cvrData, stats);
 
@@ -39,25 +45,43 @@ namespace LbForsikring.Features
             }
 
 
-            private static async Task<List<StatsResponse>> LookupStats(string industryCode, IDstService dstService)
+            private static async Task<List<StatsResponse>> LookupStats(string industryCode, IDstService dstService, ILogger<GetCompanyDetails> logger)
             {
-                var result = await dstService.GetIndustryStats(industryCode, 2024);
-                return StatsResponse.FromString(result);
+                try
+                {
+                    var result = await dstService.GetIndustryStats(industryCode, 2024);
+                    return StatsResponse.FromString(result);
+                }
+                catch (Exception e)
+                {
+                   logger.LogError(e, "Failed to lookup stats");    
+                   return []; //TODO: Return some better message
+                }
+               
             }
 
-            private static async Task<CvrResponse> LookUpCompany(GetCompanyDetailsRequest request, ICvrService cvrService)
+            private static async Task<CvrResponse> LookUpCompany(GetCompanyDetailsRequest request, ICvrService cvrService, ILogger<GetCompanyDetails> logger)
             {
-                if (request.Cvr != null)
+                try
                 {
-                    return await cvrService.GetByCvr(request.Cvr);
-                }
+                    if (request.Cvr != null)
+                    {
+                        return await cvrService.GetByCvr(request.Cvr);
+                    }
 
-                return await cvrService.GetByName(request.Name!);
+                    return await cvrService.GetByName(request.Name!);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Failed to lookup company");
+                    return new CvrResponse();
+                }
+               
             }
             
             private static GetCompanyDetailsResponse CreateResponse(CvrResponse cvrData, List<StatsResponse> stats)
             {
-                return new GetCompanyDetailsResponse()
+                return new GetCompanyDetailsResponse
                 {
                     Name = cvrData.Name,
                     IndustryCode = cvrData.IndustryCode,

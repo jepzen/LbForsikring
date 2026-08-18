@@ -1,6 +1,7 @@
 using LbForsikring.Features;
 using LbForsikring.Integrations;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace LbForsikring.Tests;
@@ -9,12 +10,13 @@ public class GetCompanyDetailsHandlerTests
 {
     private readonly Mock<ICvrService> _mockCvrService = new();
     private readonly Mock<IDstService> _mockDstService = new();
+    private readonly Mock<ILogger<GetCompanyDetails>> _logger = new();
 
     [Fact]
     public async Task Handle_WithNeitherNameNorCvr_ReturnsBadRequest()
     {
         // Act
-        var result = await GetCompanyDetails.Endpoint.Handle(null, null, _mockCvrService.Object, _mockDstService.Object);
+        var result = await GetCompanyDetails.Endpoint.Handle(null, null, _mockCvrService.Object, _mockDstService.Object, _logger.Object);
 
         // Assert
         Assert.IsType<ProblemHttpResult>(result.Result);
@@ -24,7 +26,7 @@ public class GetCompanyDetailsHandlerTests
     public async Task Handle_WithEmptyNameAndEmptyCvr_ReturnsBadRequest()
     {
         // Act
-        var result = await GetCompanyDetails.Endpoint.Handle("", "", _mockCvrService.Object, _mockDstService.Object);
+        var result = await GetCompanyDetails.Endpoint.Handle("", "", _mockCvrService.Object, _mockDstService.Object, _logger.Object);
 
         // Assert
         Assert.IsType<ProblemHttpResult>(result.Result);
@@ -54,7 +56,7 @@ public class GetCompanyDetailsHandlerTests
         // Act
         try
         {
-            await GetCompanyDetails.Endpoint.Handle(null, "   ", _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle(null, "   ", _mockCvrService.Object, _mockDstService.Object, _logger.Object);
         }
         catch
         {
@@ -89,7 +91,7 @@ public class GetCompanyDetailsHandlerTests
         // Act
         try
         {
-            await GetCompanyDetails.Endpoint.Handle("IgnoredName", "12345678", _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle("IgnoredName", "12345678", _mockCvrService.Object, _mockDstService.Object, _logger.Object);
         }
         catch (NotImplementedException)
         {
@@ -125,7 +127,7 @@ public class GetCompanyDetailsHandlerTests
         // Act
         try
         {
-            await GetCompanyDetails.Endpoint.Handle("TestCompany", null, _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle("TestCompany", null, _mockCvrService.Object, _mockDstService.Object, _logger.Object);
         }
         catch
         {
@@ -161,7 +163,7 @@ public class GetCompanyDetailsHandlerTests
         // Act
         try
         {
-            await GetCompanyDetails.Endpoint.Handle(null, cvr, _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle(null, cvr, _mockCvrService.Object, _mockDstService.Object, _logger.Object);
         }
         catch (NotImplementedException)
         {
@@ -176,7 +178,6 @@ public class GetCompanyDetailsHandlerTests
     public async Task Handle_CallsDstServiceWithCurrentYear()
     {
         // Arrange
-        var currentYear = DateTime.Now.Year;
         var cvrResponse = new CvrResponse
         {
             Vat = 16500836,
@@ -197,7 +198,7 @@ public class GetCompanyDetailsHandlerTests
         // Act
         try
         {
-            await GetCompanyDetails.Endpoint.Handle(null, "12345678", _mockCvrService.Object, _mockDstService.Object);
+            await GetCompanyDetails.Endpoint.Handle(null, "12345678", _mockCvrService.Object, _mockDstService.Object, _logger.Object);
         }
         catch (NotImplementedException)
         {
@@ -206,6 +207,61 @@ public class GetCompanyDetailsHandlerTests
 
         // Assert
         _mockDstService.Verify(x => x.GetIndustryStats(It.IsAny<string>(), 2024), Times.Once);
+    }
+    
+    [Fact]
+    public async Task Handle_WhenCvrServiceFails_PropagatesException()
+    {
+        // Arrange
+        _mockCvrService
+            .Setup(x => x.GetByCvr("12345678"))
+            .ThrowsAsync(new InvalidOperationException("CVR service unavailable"));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            GetCompanyDetails.Endpoint.Handle(
+                null,
+                "12345678",
+                _mockCvrService.Object,
+                _mockDstService.Object,
+                _logger.Object));
+
+        Assert.Equal("CVR service unavailable", exception.Message);
+    }
+    
+    [Fact]
+    public async Task Handle_WhenDstServiceFails_PropagatesException()
+    {
+        // Arrange
+        var cvrResponse = new CvrResponse
+        {
+            Vat = 16500836,
+            Name = "LB FORSIKRING A/S",
+            Address = "Amerika Plads 15",
+            Zipcode = 2100,
+            City = "København Ø",
+            IndustryCode = "651200",
+            IndustryDesc = "Anden forsikring"
+        };
+
+        _mockCvrService
+            .Setup(x => x.GetByCvr("12345678"))
+            .ReturnsAsync(cvrResponse);
+
+        _mockDstService
+            .Setup(x => x.GetIndustryStats("651200", 2024))
+            .ThrowsAsync(new HttpRequestException("StatBank unavailable"));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            GetCompanyDetails.Endpoint.Handle(
+                null,
+                "12345678",
+                _mockCvrService.Object,
+                _mockDstService.Object,
+                _logger.Object));
+
+        Assert.Equal("StatBank unavailable", exception.Message);
     }
 }
 

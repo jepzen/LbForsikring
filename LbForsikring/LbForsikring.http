@@ -1,6 +1,13 @@
 @LbForsikring_HostAddress = http://localhost:5154
 
-GET {{LbForsikring_HostAddress}}/weatherforecast/
+### Get by Cvr
+GET {{LbForsikring_HostAddress}}/company?cvr=16500836
 Accept: application/json
 
-###
+### Get by Name
+GET {{LbForsikring_HostAddress}}/company?name=lb forsikring
+Accept: application/json
+
+
+
+

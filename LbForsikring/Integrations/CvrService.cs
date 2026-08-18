@@ -4,15 +4,13 @@
     using System.Net.Http;
     using System.Text.Json;
 
-    public class CvrService : ICvrService
+    public class CvrService(HttpClient httpClient) : ICvrService
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
-
-        private static readonly HttpClient Client = new();
-
+        
         public async Task<CvrResponse> GetByCvr(string cvr)
         {
             if (string.IsNullOrWhiteSpace(cvr))
@@ -21,7 +19,7 @@
             //TODO: Move to configuration
             var url = $"https://apicvr.dk/api/v1/{cvr}";
 
-            var response = await Client.GetAsync(url);
+            var response = await httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -43,7 +41,7 @@
             //TODO: Move to configuration
             var url = $"https://apicvr.dk/api/v1/search/company/{name}";
 
-            var response = await Client.GetAsync(url);
+            var response = await httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
