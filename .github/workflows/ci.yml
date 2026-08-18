@@ -28,13 +28,13 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore
-        run: dotnet restore LbForsikring.sln
+        run: dotnet restore LbForsikring.slnx
 
       - name: Build
-        run: dotnet build LbForsikring.sln --no-restore --configuration Release
+        run: dotnet build LbForsikring.slnx --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test LbForsikring.sln --no-build --configuration Release
+        run: dotnet test LbForsikring.slnx --no-build --configuration Release
 
   publish:
     name: Build and Publish Container
