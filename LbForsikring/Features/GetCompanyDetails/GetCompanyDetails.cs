@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
-namespace LbForsikring.Features
+namespace LbForsikring.Features.GetCompanyDetails
 {
     public class GetCompanyDetails
     {

@@ -1,4 +1,5 @@
 using LbForsikring.Features;
+using LbForsikring.Features.GetCompanyDetails;
 using LbForsikring.Integrations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;

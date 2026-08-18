@@ -1,6 +1,6 @@
 using LbForsikring.Integrations;
 
-namespace LbForsikring.Features;
+namespace LbForsikring.Features.GetCompanyDetails;
 
 public record GetCompanyDetailsResponse
 {

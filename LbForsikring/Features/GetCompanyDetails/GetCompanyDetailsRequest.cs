@@ -1,4 +1,4 @@
-namespace LbForsikring.Features;
+namespace LbForsikring.Features.GetCompanyDetails;
 
 public record GetCompanyDetailsRequest
 {
