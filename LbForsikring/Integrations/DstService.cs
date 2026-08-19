@@ -48,21 +48,21 @@
     public class DstDataRequest
     {
         [JsonPropertyName("table")]
-        public string Table { get; set; }
+        public required string Table { get; set; }
 
         [JsonPropertyName("format")]
-        public string Format { get; set; }
+        public required string Format { get; set; }
 
         [JsonPropertyName("variables")]
-        public DstVariable[] Variables { get; set; }
+        public required DstVariable[] Variables { get; set; }
     }
 
     public class DstVariable
     {
         [JsonPropertyName("code")]
-        public string Code { get; set; }
+        public required string Code { get; set; }
 
         [JsonPropertyName("values")]
-        public string[] Values { get; set; }
+        public required string[] Values { get; set; }
     }
 }

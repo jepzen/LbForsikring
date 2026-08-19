@@ -1,4 +1,3 @@
-using LbForsikring.Features;
 using LbForsikring.Features.GetCompanyDetails;
 using LbForsikring.Integrations;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -211,27 +210,21 @@ public class GetCompanyDetailsHandlerTests
     }
     
     [Fact]
-    public async Task Handle_WhenCvrServiceFails_PropagatesException()
+    public async Task Handle_WhenCvrServiceFails_ReturnsBadRequest()
     {
         // Arrange
         _mockCvrService
             .Setup(x => x.GetByCvr("12345678"))
             .ThrowsAsync(new InvalidOperationException("CVR service unavailable"));
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            GetCompanyDetails.Endpoint.Handle(
-                null,
-                "12345678",
-                _mockCvrService.Object,
-                _mockDstService.Object,
-                _logger.Object));
+        var result = await GetCompanyDetails.Endpoint.Handle(null, null, _mockCvrService.Object, _mockDstService.Object, _logger.Object);
 
-        Assert.Equal("CVR service unavailable", exception.Message);
+        // Assert
+        Assert.IsType<ProblemHttpResult>(result.Result);
     }
-    
+
     [Fact]
-    public async Task Handle_WhenDstServiceFails_PropagatesException()
+    public async Task Handle_WhenDstServiceFails_GivesEmptyStats()
     {
         // Arrange
         var cvrResponse = new CvrResponse
@@ -254,15 +247,12 @@ public class GetCompanyDetailsHandlerTests
             .ThrowsAsync(new HttpRequestException("StatBank unavailable"));
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<HttpRequestException>(() =>
-            GetCompanyDetails.Endpoint.Handle(
-                null,
-                "12345678",
-                _mockCvrService.Object,
-                _mockDstService.Object,
-                _logger.Object));
+        var result = await GetCompanyDetails.Endpoint.Handle(null, "12345678", _mockCvrService.Object,
+            _mockDstService.Object, _logger.Object);
 
-        Assert.Equal("StatBank unavailable", exception.Message);
+        var okResult = Assert.IsType<Ok<GetCompanyDetailsResponse>>(result.Result);
+        
+        Assert.Empty(okResult.Value!.Stats);
     }
 }
 
